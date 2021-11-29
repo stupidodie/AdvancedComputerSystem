@@ -6,17 +6,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.acertainbookstore.business.*;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.acertainbookstore.business.Book;
-import com.acertainbookstore.business.BookCopy;
-import com.acertainbookstore.business.CertainBookStore;
-import com.acertainbookstore.business.ImmutableStockBook;
-import com.acertainbookstore.business.StockBook;
 import com.acertainbookstore.client.BookStoreHTTPProxy;
 import com.acertainbookstore.client.StockManagerHTTPProxy;
 import com.acertainbookstore.interfaces.BookStore;
@@ -36,6 +32,9 @@ public class BookStoreTest {
 
 	/** The Constant NUM_COPIES. */
 	private static final int NUM_COPIES = 5;
+
+	/** The Constant Rating */
+	private static final int Rating =3;
 
 	/** The local test. */
 	private static boolean localTest = true;
@@ -120,6 +119,128 @@ public class BookStoreTest {
 	@After
 	public void cleanupBooks() throws BookStoreException {
 		storeManager.removeAllBooks();
+	}
+
+	/**
+	 * Tests that getTopRatedBooks with invalid Number.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testGetTopRatedBooksInvalidNumber() throws BookStoreException{
+		List<StockBook> booksInStorePreTest = storeManager.getBooks();
+		boolean catchTheException = false;
+		//Try to get the Top Rated Books
+		try{
+			client.getTopRatedBooks(-1);
+			fail();
+		} catch (BookStoreException ex){
+			catchTheException=true;
+		}
+		List<StockBook> booksInStorePostTest = storeManager.getBooks();
+		assertTrue(catchTheException &&
+				booksInStorePreTest.containsAll(booksInStorePostTest)
+				&& booksInStorePreTest.size() == booksInStorePostTest.size());
+	}
+	/**
+	 * Tests that getTopRatedBooks.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testGetTopRatedBooks() throws BookStoreException{
+		//Try to get the Top Rated Books
+		List<Book> topRatedBooks= client.getTopRatedBooks(5);
+		List<StockBook> listBooks = storeManager.getBooks();
+		StockBook bookInList = listBooks.get(0);
+		if (bookInList.getNumTimesRated()==0){
+			assertTrue(topRatedBooks.size()==0);
+		}else{
+			assertTrue(topRatedBooks==bookInList);
+		}
+
+	}
+	/**
+	 * Tests basic rateBooks() functionality.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testRateBook() throws BookStoreException{
+		//Set of books to rate
+		Set<BookRating> booksToRate = new HashSet<>();
+		booksToRate.add(new BookRating(TEST_ISBN,Rating));
+
+		//Try to rate books
+		client.rateBooks(booksToRate);
+
+		List<StockBook> listBooks = storeManager.getBooks();
+		StockBook bookInList = listBooks.get(0);
+		StockBook ratedBook = getDefaultBook();
+		assertTrue(bookInList.getNumTimesRated()==ratedBook.getNumTimesRated()+1
+			&& bookInList.getAverageRating() == Rating
+			&& bookInList.getTotalRating() ==Rating);
+	}
+
+	/**
+	 * Tests that books with invalid ISBNs cannot be rated.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testRateInvalidISBN() throws BookStoreException{
+		List<StockBook> booksInStorePreTest = storeManager.getBooks();
+
+		// Try to buy a book with invalid ISBN.
+		HashSet<BookRating> bookToRate = new HashSet<BookRating>();
+		bookToRate.add(new BookRating(TEST_ISBN, 1)); // valid
+		bookToRate.add(new BookRating(-1, 1)); // invalid
+
+		// Try to rate the books.
+		try {
+			client.rateBooks(bookToRate);
+			fail();
+		} catch (BookStoreException ex){
+			;
+		}
+		List<StockBook> booksInStorePostTest = storeManager.getBooks();
+
+		// Check pre and post state are same.
+		assertTrue(booksInStorePreTest.containsAll(booksInStorePostTest)
+				&& booksInStorePreTest.size() == booksInStorePostTest.size());
+
+	}
+	/**
+	 * Tests that books with invalid ratings cannot be rated.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testRateInvalidRating() throws BookStoreException{
+		List<StockBook> booksInStorePreTest = storeManager.getBooks();
+
+		// Try to buy a book with invalid Rating.
+		HashSet<BookRating> bookToRate = new HashSet<BookRating>();
+		bookToRate.add(new BookRating(TEST_ISBN, -1)); // invalid
+
+		// Try to rate the books.
+		try {
+			client.rateBooks(bookToRate);
+			fail();
+		} catch (BookStoreException ex){
+			;
+		}
+		List<StockBook> booksInStorePostTest = storeManager.getBooks();
+
+		// Check pre and post state are same.
+		assertTrue(booksInStorePreTest.containsAll(booksInStorePostTest)
+				&& booksInStorePreTest.size() == booksInStorePostTest.size());
+
 	}
 
 	/**
