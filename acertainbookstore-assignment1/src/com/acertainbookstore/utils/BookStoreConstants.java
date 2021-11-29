@@ -57,9 +57,9 @@ public final class BookStoreConstants {
 	/** The Constant PROPERTY_KEY_LOCAL_TEST. */
 	public static final String PROPERTY_KEY_LOCAL_TEST = "localtest";
 
+
 	/** The Constant PROPERTY_KEY_SERVER_PORT. */
 	public static final String PROPERTY_KEY_SERVER_PORT = "port";
-
 	/** The Constant EPSILON used for floating point number comparison */
 	public static final float EPSILON = 0.000001F;
 

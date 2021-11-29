@@ -37,7 +37,7 @@ public class BookStoreTest {
 	private static final int Rating =3;
 
 	/** The local test. */
-	private static boolean localTest = true;
+	private static boolean localTest = false;
 
 	/** The store manager. */
 	private static StockManager storeManager;

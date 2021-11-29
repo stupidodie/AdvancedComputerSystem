@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -40,7 +41,7 @@ public class StockManagerTest {
 	private static final Integer NUM_COPIES = 5;
 
 	/** The local test. */
-	private static boolean localTest = true;
+	private static boolean localTest = false;
 
 	/** The store manager. */
 	private static StockManager storeManager;
@@ -382,6 +383,38 @@ public class StockManagerTest {
 		Book editorPick = editorPicksLists.get(0);
 
 		assertTrue(editorPick.equals(defaultBookAdded));
+	}
+	/**
+	 * Checks cases when books in demand is 0.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testGetBooksInDemandNone() throws BookStoreException{
+		List<StockBook> demandBookList= storeManager.getBooksInDemand();
+		assertTrue(demandBookList==null);
+	}
+	/**
+	 * Checks cases when books in demand is not 0.
+	 *
+	 * @throws BookStoreException
+	 *             the book store exception
+	 */
+	@Test
+	public void testGetBooksInDemandMaybeNotNone() throws BookStoreException{
+		// To get the all books list and filter them, then to judge if its size equals
+		List<StockBook> allbooks=storeManager.getBooks();
+		List<StockBook> demandBookList= storeManager.getBooksInDemand();
+		List<StockBook> newDemandBooklist = allbooks.stream()
+				.filter(book->book.getNumSaleMisses()>0).collect(Collectors.toList());
+		if(demandBookList==null){
+			assertTrue(newDemandBooklist.size()==0);
+		}else{
+			assertTrue(newDemandBooklist.size()==demandBookList.size());
+		}
+
+
 	}
 
 	/**

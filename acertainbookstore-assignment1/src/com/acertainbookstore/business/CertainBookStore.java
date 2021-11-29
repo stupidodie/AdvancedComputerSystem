@@ -337,8 +337,7 @@ public class CertainBookStore implements BookStore, StockManager {
                 return (int)(b2.getAverageRating()-b1.getAverageRating());
             }
         });
-        // Find numBooks random indices of books that will be picked.
-        Random rand = new Random();
+        // Find the minmium number between listSize and numBooks required to return
         Set<Integer> tobePicked = new HashSet<>();
         int listSize = listAllRatedBooks.size();
 
@@ -355,7 +354,6 @@ public class CertainBookStore implements BookStore, StockManager {
 
         }
 
-        // Return all the books by the randomly chosen indices.
         return tobePicked.stream().map(index -> listAllRatedBooks.get(index).immutableBook())
                 .collect(Collectors.toList());
     }

@@ -155,8 +155,7 @@ public class StockManagerHTTPProxy implements StockManager {
         String urlString = serverAddress + "/" + BookStoreMessageTag.GETBOOKSINDEMAND;
 
         // Creating zero-length buffer for POST request body, because we don't
-        // need to send any data; this request is just a signal to remove all
-        // books.
+        // need to send any data; this request is just a signal to get Books In demand.
         BookStoreRequest bookStoreRequest = BookStoreRequest.newPostRequest(urlString, "");
         BookStoreResponse bookStoreResponse = BookStoreUtility.performHttpExchange(client, bookStoreRequest,
                 serializer.get());
