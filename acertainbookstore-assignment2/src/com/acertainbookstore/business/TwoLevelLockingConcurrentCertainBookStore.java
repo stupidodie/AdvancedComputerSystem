@@ -297,7 +297,7 @@ public class TwoLevelLockingConcurrentCertainBookStore implements BookStore, Sto
                 numCopies = bookCopy.getNumCopies();
                 book = bookMap.get(isbn);
                 book.addCopies(numCopies);
-				releaseLocalShareLock(isbn);
+				releaseLocalExclusiveLock(isbn);
             }
         } catch (BookStoreException e) {
             throw e;
