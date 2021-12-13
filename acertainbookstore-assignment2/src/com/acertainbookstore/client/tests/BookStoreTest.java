@@ -1,10 +1,9 @@
 package com.acertainbookstore.client.tests;
 
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.*;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -362,6 +361,144 @@ public class BookStoreTest {
 		assertTrue(booksInStorePreTest.containsAll(booksInStorePostTest)
 				&& booksInStorePreTest.size() == booksInStorePostTest.size());
 	}
+	private class BuyBooksRunnable implements Runnable{
+		private  Set<BookCopy> books;
+		private int operationNumbers=0;
+		BuyBooksRunnable(int operationNumbers, Set<BookCopy> books){
+			this.books=books;
+			this.operationNumbers=operationNumbers;
+		}
+		@Override
+		public void run() {
+			try{
+				for(int i=0;i<operationNumbers;i++){
+					client.buyBooks(books);
+				}
+			}catch (BookStoreException e){
+				e.printStackTrace();
+			}
+		}
+	}
+	private class AddCopiesRunnable implements Runnable {
+		private Set<BookCopy> books;
+		private int operationNumbers = 0;
+
+		AddCopiesRunnable(int operationNumbers, Set<BookCopy> books) {
+			this.books = books;
+			this.operationNumbers = operationNumbers;
+		}
+
+		@Override
+		public void run() {
+			try {
+				for (int i = 0; i < operationNumbers; i++) {
+					storeManager.addCopies(books);
+				}
+			} catch (BookStoreException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+		/** The first test code*?
+	 *
+	 * @throws BookStoreException
+	 */
+	@Test
+	public void test1() throws BookStoreException{
+		storeManager.removeAllBooks();
+		final int TEST_NUMBER=3;
+		addBooks(TEST_ISBN,NUM_COPIES*100);
+		addBooks(TEST_ISBN+1,NUM_COPIES*100);
+		addBooks(TEST_ISBN+2,NUM_COPIES*100);
+		Set<BookCopy> booksToBuyAndAddCopies = new HashSet<>();
+		booksToBuyAndAddCopies.add(new BookCopy(TEST_ISBN,TEST_NUMBER));
+		booksToBuyAndAddCopies.add(new BookCopy(TEST_ISBN+1, TEST_NUMBER));
+		booksToBuyAndAddCopies.add(new BookCopy(TEST_ISBN+2, TEST_NUMBER));
+		Thread t1 =new Thread(new BuyBooksRunnable(100,booksToBuyAndAddCopies));
+		Thread t2= new Thread(new AddCopiesRunnable(100,booksToBuyAndAddCopies));
+		t1.start();
+		t2.start();
+		try{
+			t1.join();
+			t2.join();
+		}catch (InterruptedException e){
+			e.printStackTrace();
+		}
+		assertEquals(NUM_COPIES*100,storeManager.getBooksByISBN(new HashSet<>(singletonList(TEST_ISBN))).get(0).getNumCopies());
+		assertEquals(NUM_COPIES*100,storeManager.getBooksByISBN(new HashSet<>(singletonList(TEST_ISBN+1))).get(0).getNumCopies());
+		assertEquals(NUM_COPIES*100,storeManager.getBooksByISBN(new HashSet<>(singletonList(TEST_ISBN+2))).get(0).getNumCopies());
+	}
+	private class BuyAndAddCopies implements Runnable{
+		private final int operationNumbers;
+		private Set<BookCopy> bookCopies;
+		BuyAndAddCopies(int operationNumbers,Set<BookCopy>  bookCopies){
+			this.bookCopies=bookCopies;
+			this.operationNumbers=operationNumbers;
+		}
+
+		@Override
+		public void run() {
+			try{
+				for(int i=0;i<operationNumbers;i++){
+					client.buyBooks(bookCopies);
+					storeManager.addCopies(bookCopies);
+				}
+			}catch (BookStoreException e){
+				e.printStackTrace();
+			}
+		}
+	}
+	private static class CheckSnapshots implements Runnable{
+		private final int operationNumbers;
+		private static boolean error=false;
+		CheckSnapshots(int operationNumbers){
+			this.operationNumbers=operationNumbers;
+		}
+		public static boolean getError(){
+			return error;
+		}
+		@Override
+		public void run(){
+				for(int i=0;i<operationNumbers;i++){
+					List<StockBook> books=new ArrayList<>();
+					try{
+						books=storeManager.getBooks();
+					}catch (BookStoreException e){
+						error=true;
+						e.printStackTrace();
+					}
+					for(StockBook b: books){
+						if (!(b.getNumCopies() == NUM_COPIES || b.getNumCopies() == 0)) {
+							error = true;
+						}
+					}
+
+				}
+			}
+	}
+	@Test
+	public void test2() throws BookStoreException{
+
+		addBooks(TEST_ISBN+1,NUM_COPIES);
+		addBooks(TEST_ISBN+2,NUM_COPIES);
+		Set<BookCopy> booksToBuyAndReplenish = new HashSet<>();
+		booksToBuyAndReplenish.add(new BookCopy(TEST_ISBN,NUM_COPIES));
+		booksToBuyAndReplenish.add(new BookCopy(TEST_ISBN+1, NUM_COPIES));
+		booksToBuyAndReplenish.add(new BookCopy(TEST_ISBN+2, NUM_COPIES));
+
+		Thread c1 = new Thread(new BuyAndAddCopies(100,booksToBuyAndReplenish));
+		Thread c2 = new Thread(new CheckSnapshots(100));
+		c1.start();
+		c2.start();
+		try {
+			c1.join();
+			c2.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		assertFalse( CheckSnapshots.getError());
+	}
+	
 	/**
 	 * Tear down after class.
 	 *
