@@ -1,22 +1,18 @@
 package com.acertainbookstore.client.tests;
 
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.*;
 
 import java.util.*;
 
+import com.acertainbookstore.business.*;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.acertainbookstore.business.Book;
-import com.acertainbookstore.business.BookCopy;
-import com.acertainbookstore.business.SingleLockConcurrentCertainBookStore;
-import com.acertainbookstore.business.ImmutableStockBook;
-import com.acertainbookstore.business.StockBook;
-import com.acertainbookstore.business.TwoLevelLockingConcurrentCertainBookStore;
 import com.acertainbookstore.client.BookStoreHTTPProxy;
 import com.acertainbookstore.client.StockManagerHTTPProxy;
 import com.acertainbookstore.interfaces.BookStore;
@@ -481,24 +477,147 @@ public class BookStoreTest {
 
 		addBooks(TEST_ISBN+1,NUM_COPIES);
 		addBooks(TEST_ISBN+2,NUM_COPIES);
-		Set<BookCopy> booksToBuyAndReplenish = new HashSet<>();
-		booksToBuyAndReplenish.add(new BookCopy(TEST_ISBN,NUM_COPIES));
-		booksToBuyAndReplenish.add(new BookCopy(TEST_ISBN+1, NUM_COPIES));
-		booksToBuyAndReplenish.add(new BookCopy(TEST_ISBN+2, NUM_COPIES));
+		Set<BookCopy> booksToBuyAndAdd = new HashSet<>();
+		booksToBuyAndAdd.add(new BookCopy(TEST_ISBN,NUM_COPIES));
+		booksToBuyAndAdd.add(new BookCopy(TEST_ISBN+1, NUM_COPIES));
+		booksToBuyAndAdd.add(new BookCopy(TEST_ISBN+2, NUM_COPIES));
 
-		Thread c1 = new Thread(new BuyAndAddCopies(100,booksToBuyAndReplenish));
-		Thread c2 = new Thread(new CheckSnapshots(100));
-		c1.start();
-		c2.start();
+		Thread t1 = new Thread(new BuyAndAddCopies(100,booksToBuyAndAdd));
+		Thread t2 = new Thread(new CheckSnapshots(100));
+		t1.start();
+		t2.start();
 		try {
-			c1.join();
-			c2.join();
+			t1.join();
+			t2.join();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 		assertFalse( CheckSnapshots.getError());
 	}
-	
+
+	private class BuyAndAddCopies2 implements Runnable{
+		private final int operationNumbers;
+		private Set<BookCopy> bookCopies1;
+		private Set<BookCopy> bookCopies2;
+		BuyAndAddCopies2(int operationNumbers,Set<BookCopy>  bookCopies1,Set<BookCopy>  bookCopies2){
+			this.bookCopies1=bookCopies1;
+			this.bookCopies2=bookCopies2;
+			this.operationNumbers=operationNumbers;
+		}
+
+		@Override
+		public void run() {
+			try{
+				for(int i=0;i<operationNumbers;i++){
+					client.buyBooks(bookCopies1);
+					storeManager.addCopies(bookCopies2);
+				}
+			}catch (BookStoreException e){
+				e.printStackTrace();
+			}
+		}
+	}
+	@Test
+	public void test3() throws BookStoreException{
+		storeManager.removeAllBooks();
+		addBooks(TEST_ISBN,NUM_COPIES*100);
+		addBooks(TEST_ISBN+1,NUM_COPIES*100);
+		addBooks(TEST_ISBN+2,NUM_COPIES*100);
+		Set<BookCopy> booksToBuy = new HashSet<>();
+		Set<BookCopy> booksToAdd = new HashSet<>();
+		booksToBuy.add(new BookCopy(TEST_ISBN,NUM_COPIES));
+		booksToAdd.add(new BookCopy(TEST_ISBN,1));
+		booksToBuy.add(new BookCopy(TEST_ISBN+1, NUM_COPIES));
+		booksToAdd.add(new BookCopy(TEST_ISBN+1, 1));
+		booksToBuy.add(new BookCopy(TEST_ISBN+2, NUM_COPIES));
+		booksToAdd.add(new BookCopy(TEST_ISBN+2, 1));
+		Thread t1 = new Thread(new BuyAndAddCopies2(10,booksToBuy,booksToAdd));
+		Thread t2 =new Thread(new BuyAndAddCopies2(9,booksToAdd,booksToBuy));
+		t1.start();
+		t2.start();
+		try{
+			t1.join();
+			t2.join();
+		}catch (InterruptedException e){
+			e.printStackTrace();
+		}
+		assertEquals(NUM_COPIES*100-4,storeManager.getBooksByISBN(new HashSet<>(singletonList(TEST_ISBN))).get(0).getNumCopies());
+		assertEquals(NUM_COPIES*100-4,storeManager.getBooksByISBN(new HashSet<>(singletonList(TEST_ISBN+1))).get(0).getNumCopies());
+		assertEquals(NUM_COPIES*100-4,storeManager.getBooksByISBN(new HashSet<>(singletonList(TEST_ISBN+2))).get(0).getNumCopies());
+
+	}
+	private class UpdateEditorPicker implements Runnable{
+		private final int operationNumbers;
+		Set<BookEditorPick> editorPicks1;
+		Set<BookEditorPick> editorPicks2;
+		UpdateEditorPicker(int operationNumbers,Set<BookEditorPick> editorPicks1,Set<BookEditorPick> editorPicks2){
+			this.operationNumbers=operationNumbers;
+			this.editorPicks1=editorPicks1;
+			this.editorPicks2=editorPicks2;
+		}
+		@Override
+		public void run(){
+			try{
+				for(int i=0;i<operationNumbers;i++){
+					storeManager.updateEditorPicks(editorPicks1);
+					storeManager.updateEditorPicks(editorPicks2);
+				}
+			}catch (BookStoreException e){
+				e.printStackTrace();
+			}
+		}
+	}
+	private static class CheckSnapshots2 implements Runnable{
+		private final int operationNumbers;
+		private static boolean error=false;
+		CheckSnapshots2(int operationNumbers){
+			this.operationNumbers=operationNumbers;
+		}
+		public static boolean getError(){
+			return error;
+		}
+		@Override
+		public void run(){
+			for(int i=0;i<operationNumbers;i++){
+				List<Book> books=new ArrayList<>();
+				try{
+					books=client.getEditorPicks(1);
+				}catch (BookStoreException e){
+					error=true;
+					e.printStackTrace();
+				}
+				if (!(books.get(0).getISBN() == TEST_ISBN || books.get(0).getISBN() == TEST_ISBN+1)) {
+						error = true;
+					}
+
+			}
+		}
+	}
+	@Test
+	public void test4() throws BookStoreException{
+
+		addBooks(TEST_ISBN+1,NUM_COPIES);
+		Set<BookEditorPick> editorPicks1=new HashSet<>();
+		Set<BookEditorPick> editorPicks2=new HashSet<>();
+		editorPicks1.add(new BookEditorPick(TEST_ISBN,true));
+		editorPicks1.add(new BookEditorPick(TEST_ISBN+1,false));
+		storeManager.updateEditorPicks(editorPicks1);
+		editorPicks1.add(new BookEditorPick(TEST_ISBN,false));
+		editorPicks1.add(new BookEditorPick(TEST_ISBN+1,true));
+		Thread t1= new Thread(new UpdateEditorPicker(20,editorPicks1,editorPicks2));
+		Thread t2=new Thread(new CheckSnapshots2(20));
+		t1.start();
+		t2.start();
+		try {
+			t1.join();
+			t2.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		assertFalse( CheckSnapshots.getError());
+
+
+	}
 	/**
 	 * Tear down after class.
 	 *
