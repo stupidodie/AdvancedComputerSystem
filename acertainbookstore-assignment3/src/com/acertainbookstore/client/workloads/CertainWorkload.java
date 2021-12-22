@@ -49,7 +49,7 @@ public class CertainWorkload {
      * The main function is from https://github.com/silvanadrian/ACS2018.
      */
     public static void main(String[] args) throws Exception {
-        numConcurrentWorkloadThreads = 10;
+        numConcurrentWorkloadThreads = 50;
         String serverAddress = "http://localhost:8081";
 
         CertainBookStore store = new CertainBookStore();
@@ -215,7 +215,7 @@ public class CertainWorkload {
 
         // use the BookSet generator for generating random books (1000)
         BookSetGenerator bookSetGenerator = new BookSetGenerator();
-        Set<StockBook> stockBookSet = bookSetGenerator.nextSetOfStockBooks(10);
+        Set<StockBook> stockBookSet = bookSetGenerator.nextSetOfStockBooks(200);
 
         //remove all books before, to be sure only the generated books are included
         stockManager.removeAllBooks();
