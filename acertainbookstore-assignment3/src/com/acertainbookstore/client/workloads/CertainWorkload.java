@@ -25,12 +25,15 @@ import org.knowm.xchart.style.Styler.ChartTheme;
  * CertainWorkload class runs the workloads by different workers concurrently. It configures the
  * environment for the workers using WorkloadConfiguration objects and reports the metrics
  */
+
+
+
 public class CertainWorkload {
 
     private static int numConcurrentWorkloadThreads;
 
     /**
-     * @param args
+     * The main function is from https://github.com/silvanadrian/ACS2018.
      */
     public static void main(String[] args) throws Exception {
         numConcurrentWorkloadThreads = 10;
@@ -51,6 +54,9 @@ public class CertainWorkload {
         reportMetric(localResults, rpcResults);
     }
 
+    /**
+     * The runWorkers function is from https://github.com/silvanadrian/ACS2018.
+     */
     private static List<List<WorkerRunResult>> runWorkers(BookStore bookstore,
                                                           StockManager stockmanager)
             throws Exception {
