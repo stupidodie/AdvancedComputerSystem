@@ -38,6 +38,11 @@
       <root url="jar://$PROJECT_DIR$/lib/reflectasm-1.10.1-shaded.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/servlet-api-3.1.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/xstream-1.4.10.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/gnujaxp.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jcommon-1.0.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jfreechart-1.0.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/junit.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/servlet.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

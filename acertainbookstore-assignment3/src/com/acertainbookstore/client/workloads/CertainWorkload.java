@@ -15,11 +15,21 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
-import org.knowm.xchart.BitmapEncoder;
-import org.knowm.xchart.BitmapEncoder.BitmapFormat;
-import org.knowm.xchart.XYChart;
-import org.knowm.xchart.XYChartBuilder;
-import org.knowm.xchart.style.Styler.ChartTheme;
+
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import java.awt.Color;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.ChartUtilities;
+import org.jfree.data.xy.XYDataset;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.chart.plot.PlotOrientation;
+import java.awt.BasicStroke;
+import java.io.File;
+import org.jfree.chart.axis.LogarithmicAxis;
+import org.jfree.chart.axis.NumberAxis;
 
 /**
  * CertainWorkload class runs the workloads by different workers concurrently. It configures the
@@ -30,11 +40,10 @@ import org.knowm.xchart.style.Styler.ChartTheme;
  *      from https://github.com/silvanadrian/ACS2018.
  */
 
-
-
 public class CertainWorkload {
 
     private static int numConcurrentWorkloadThreads;
+
 
     /**
      * The main function is from https://github.com/silvanadrian/ACS2018.
@@ -57,7 +66,6 @@ public class CertainWorkload {
 
         reportMetric(localResults, rpcResults);
     }
-
     /**
      * The runWorkers function is from https://github.com/silvanadrian/ACS2018.
      */
@@ -116,35 +124,66 @@ public class CertainWorkload {
         List<Double> remoteThroughput = new ArrayList<>();
         getMetricResults(rpcResults, remoteLatency, remoteThroughput);
 
-        XYChart chart1 = createChart("Latency", localLatency, remoteLatency);
-        chart1.setYAxisTitle("nanoseconds");
-        chart1.setXAxisTitle("Number of threads");
-        BitmapEncoder.saveBitmap(chart1, "../latency_chart", BitmapFormat.PNG);
-        //new SwingWrapper(chart1).displayChart();
 
-        XYChart chart2 = createChart("Throughput", localThroughput, remoteThroughput);
-        chart2.setYAxisTitle("Successful interactions per ns");
-        chart2.setXAxisTitle("Number of threads");
-        BitmapEncoder.saveBitmap(chart2, "../throughput_chart", BitmapFormat.PNG);
-        //new SwingWrapper(chart2).displayChart();
+        XYDataset dataset1 = create_Chart("Latency", localLatency, remoteLatency);
+        JFreeChart latency_chart = ChartFactory.createScatterPlot(
+                "Latency Test","Number of threads","nanoseconds",dataset1,
+                PlotOrientation.VERTICAL,true,true, false);         // urls
+        XYPlot plot = (XYPlot)latency_chart.getPlot();
+        NumberAxis rangeAxis = new LogarithmicAxis("nanoseconds");
+        rangeAxis.setAutoRange(true);
+        rangeAxis.setTickMarksVisible(false);
+        rangeAxis.setAxisLineVisible(false);
+        plot.setRangeAxis(0,rangeAxis);
+        plot.setBackgroundPaint(new Color(255,228,196));
+        var renderer = new XYLineAndShapeRenderer();
+        renderer.setSeriesPaint(0, Color.RED);
+        renderer.setSeriesStroke(0, new BasicStroke(2.0f));
+        renderer.setSeriesPaint(1, Color.BLUE);
+        renderer.setSeriesStroke(0, new BasicStroke(2.0f));
+        plot.setRenderer(renderer);
+        ChartUtilities.saveChartAsPNG(new File("Latency.png"), latency_chart, 450, 400);
+
+        XYDataset dataset2 = create_Chart("Throughput", localThroughput, remoteThroughput);
+        JFreeChart throughput_chart = ChartFactory.createScatterPlot(
+                "Throughput Test","Number of threads","Successful interactions per ns",dataset2,
+                PlotOrientation.VERTICAL,true,true, false);         // urls
+        XYPlot plot2 = (XYPlot)throughput_chart.getPlot();
+        NumberAxis rangeAxis2 = new LogarithmicAxis("Successful interactions per ns");
+        rangeAxis2.setAutoRange(true);
+        rangeAxis2.setTickMarksVisible(false);
+        rangeAxis2.setAxisLineVisible(false);
+        plot2.setRangeAxis(0,rangeAxis2);
+        plot2.setBackgroundPaint(new Color(255,228,196));
+        var renderer2 = new XYLineAndShapeRenderer();
+        renderer2.setSeriesPaint(0, Color.RED);
+        renderer2.setSeriesStroke(0, new BasicStroke(2.0f));
+        renderer2.setSeriesPaint(1, Color.BLUE);
+        renderer2.setSeriesStroke(0, new BasicStroke(2.0f));
+        plot2.setRenderer(renderer2);
+        ChartUtilities.saveChartAsPNG(new File("Throughput.png"), throughput_chart, 450, 400);
+
 
     }
 
-    private static XYChart createChart(String title, List<Double> localData,
-                                       List<Double> remoteData) {
-
-        // x-axis label thread 1 until numConcurrentWorkloadThreads
+    private static XYSeriesCollection create_Chart(String title, List<Double> localData,
+                                                   List<Double> remoteData){
         double[] xLabels = IntStream.rangeClosed(1, numConcurrentWorkloadThreads).asDoubleStream()
                 .toArray();
+        double[] local_y = localData.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] remote_y = remoteData.stream().mapToDouble(Double::doubleValue).toArray();
+        XYSeriesCollection dataset = new XYSeriesCollection();
+        XYSeries series1 = new XYSeries("local");
+        XYSeries series2 = new XYSeries("remote");
 
-        XYChart chart = new XYChartBuilder().width(600).height(400).theme(ChartTheme.GGPlot2).build();
-        chart.setTitle(title);
-        chart.addSeries("local", xLabels,
-                localData.stream().mapToDouble(Double::doubleValue).toArray());
-        chart.addSeries("remote", xLabels,
-                remoteData.stream().mapToDouble(Double::doubleValue).toArray());
-        chart.getStyler().setYAxisLogarithmic(true);
-        return chart;
+        for (int i = 0; i <xLabels.length ; i++) {
+            series1.add(xLabels[i],local_y[i]);
+            series2.add(xLabels[i],remote_y[i]);
+        }
+
+        dataset.addSeries(series1);
+        dataset.addSeries(series2);
+        return dataset;
     }
 
     private static void getMetricResults(List<List<WorkerRunResult>> workerRunResults,
