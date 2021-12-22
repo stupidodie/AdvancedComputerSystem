@@ -24,6 +24,10 @@ import org.knowm.xchart.style.Styler.ChartTheme;
 /**
  * CertainWorkload class runs the workloads by different workers concurrently. It configures the
  * environment for the workers using WorkloadConfiguration objects and reports the metrics
+ *
+ *
+ * Note: In this code file, we use the modification for the main function and runWorkers function
+ *      from https://github.com/silvanadrian/ACS2018.
  */
 
 
